@@ -1,1 +1,69 @@
+Goal:
+-----
+Identify the top predictors of online purchase behavior using Logistic Regression.
+The analysis highlights which behavioral features (page values, exit rates, etc.)
+increase or decrease the likelihood of conversion.
 
+Output:
+-------
+1. Bar chart showing the Top 10 predictors of purchase.
+2. Console printout of the Top 10 features with coefficients.
+"""
+
+# --- Import Libraries ---
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+
+# --- Load Dataset ---
+# Ensure the dataset file "online_shoppers_intention.csv" is in the working directory.
+df = pd.read_csv("online_shoppers_intention.csv")
+
+# --- Prepare Features and Target ---
+X = df.drop(columns=["Revenue", "Month", "VisitorType"])  # drop target & categorical features
+y = df["Revenue"].astype(int)                             # target variable (0 = No Purchase, 1 = Purchase)
+
+# Convert boolean column to int
+X["Weekend"] = X["Weekend"].astype(int)
+
+# --- Train/Test Split ---
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=42, stratify=y
+)
+
+# --- Scale Features ---
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# --- Train Logistic Regression Model ---
+log_reg = LogisticRegression(max_iter=1000, random_state=42)
+log_reg.fit(X_train_scaled, y_train)
+
+# --- Extract Coefficients ---
+coef_df = pd.DataFrame({
+    "Feature": X.columns,
+    "Coefficient": log_reg.coef_[0]
+}).sort_values("Coefficient", key=abs, ascending=False)
+
+# --- Visualization: Top 10 Predictors ---
+plt.figure(figsize=(8,6))
+sns.barplot(
+    data=coef_df.head(10), 
+    x="Coefficient", 
+    y="Feature", 
+    palette="coolwarm"
+)
+plt.title("Top Predictors of Purchase (Logistic Regression Coefficients)")
+plt.xlabel("Coefficient (Impact on Purchase Likelihood)")
+plt.ylabel("Feature")
+plt.axvline(0, color="black", linestyle="--")
+plt.tight_layout()
+plt.show()
+
+# --- Print Top 10 Predictors ---
+print("Top 10 Predictors of Purchase (Logistic Regression):\n")
+print(coef_df.head(10))
